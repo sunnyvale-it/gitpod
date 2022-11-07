@@ -109,6 +109,10 @@ func (swctx *startWorkspaceContext) ContainerConfiguration() config.ContainerCon
 }
 
 const (
+	// workspaceBlockDeviceName is the name of the workspace block device volume
+	workspaceBlockDeviceName = "block-device-this-workspace"
+	// WorkspaceBlockDeviceDir is the path within the initContainer to format and mount the block device
+	WorkspaceBlockDeviceDir = "/dev/workspace"
 	// workspaceVolume is the name of the workspace volume
 	workspaceVolumeName = "vol-this-workspace"
 	// workspaceDir is the path within all containers where workspaceVolume is mounted to
