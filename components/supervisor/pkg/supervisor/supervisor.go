@@ -1115,26 +1115,22 @@ func startAPIEndpoint(ctx context.Context, cfg *Config, wg *sync.WaitGroup, serv
 		streamInterceptors = append(streamInterceptors, grpc_logrus.StreamServerInterceptor(log.Log))
 	}
 
-	if metricsReporter != nil {
-		grpcMetrics := grpc_prometheus.NewServerMetrics()
-		grpcMetrics.EnableHandlingTimeHistogram(
-			// it should be aligned with https://github.com/gitpod-io/gitpod/blob/196a109eee50bfb7da2c6b858a3e78f2a2d0b26f/install/installer/pkg/components/ide-metrics/configmap.go#L199
-			grpc_prometheus.WithHistogramBuckets([]float64{.005, .025, .05, .1, .5, 1, 2.5, 5, 30, 60, 120, 240, 600}),
-		)
-		unaryInterceptors = append(unaryInterceptors, grpcMetrics.UnaryServerInterceptor())
-		streamInterceptors = append(streamInterceptors, grpcMetrics.StreamServerInterceptor())
+	grpcMetrics := grpc_prometheus.NewServerMetrics()
+	grpcMetrics.EnableHandlingTimeHistogram(
+		// it should be aligned with https://github.com/gitpod-io/gitpod/blob/196a109eee50bfb7da2c6b858a3e78f2a2d0b26f/install/installer/pkg/components/ide-metrics/configmap.go#L199
+		grpc_prometheus.WithHistogramBuckets([]float64{.005, .025, .05, .1, .5, 1, 2.5, 5, 30, 60, 120, 240, 600}),
+	)
+	unaryInterceptors = append(unaryInterceptors, grpcMetrics.UnaryServerInterceptor())
+	streamInterceptors = append(streamInterceptors, grpcMetrics.StreamServerInterceptor())
 
-		opts = append(opts,
-			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryInterceptors...)),
-			grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamInterceptors...)),
-		)
-
-		err = metricsReporter.Registry.Register(grpcMetrics)
-		if err != nil {
-			log.WithError(err).Error("supervisor: failed to register grpc metrics")
-		} else {
-			go metricsReporter.Report(ctx)
-		}
+	opts = append(opts,
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryInterceptors...)),
+		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamInterceptors...)),
+	)
+	metricsRegistry := prometheus.NewRegistry()
+	err = metricsRegistry.Register(grpcMetrics)
+	if err != nil {
+		log.WithError(err).Error("supervisor: failed to register grpc metrics")
 	}
 
 	m := cmux.New(l)
@@ -1161,9 +1157,8 @@ func startAPIEndpoint(ctx context.Context, cfg *Config, wg *sync.WaitGroup, serv
 		return true
 	}))
 
-	// TODO(ak) remove it, refactor clients to use IDE proxy
 	metricStore := storage.NewDiskMetricStore("", time.Minute*5, prometheus.DefaultGatherer, nil)
-	metricsGatherer := prometheus.Gatherers{prometheus.GathererFunc(func() ([]*dto.MetricFamily, error) {
+	metricsGatherer := prometheus.Gatherers{metricsRegistry, prometheus.GathererFunc(func() ([]*dto.MetricFamily, error) {
 		return metricStore.GetMetricFamilies(), nil
 	})}
 
@@ -1173,8 +1168,13 @@ func startAPIEndpoint(ctx context.Context, cfg *Config, wg *sync.WaitGroup, serv
 	metrics.Del("/job/:job/*labels", handler.Delete(metricStore, false, nil))
 	metrics.Put("/job/:job", handler.Push(metricStore, true, true, false, nil))
 	metrics.Post("/job/:job", handler.Push(metricStore, false, true, false, nil))
-	routes.Handle("/metrics", promhttp.HandlerFor(metricsGatherer, promhttp.HandlerOpts{}))
+	routes.Handle("/metrics/debug", promhttp.HandlerFor(metricsGatherer, promhttp.HandlerOpts{}))
 	routes.Handle("/metrics/", metrics)
+
+	if metricsReporter != nil {
+		metricsReporter.AddGatherer(metricsGatherer)
+		go metricsReporter.Report(ctx)
+	}
 
 	ideURL, _ := url.Parse(fmt.Sprintf("http://localhost:%d", cfg.IDEPort))
 	routes.Handle("/", httputil.NewSingleHostReverseProxy(ideURL))

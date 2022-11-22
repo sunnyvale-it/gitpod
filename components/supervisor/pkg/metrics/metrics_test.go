@@ -52,10 +52,12 @@ func TestHistogram(t *testing.T) {
 		Name:    "grpc_server_handling_seconds",
 		Buckets: []float64{.005, .01, .025},
 	}, []string{"grpc_method"})
-	err := reporter.Registry.Register(histogram)
+	registry := prometheus.NewRegistry()
+	err := registry.Register(histogram)
 	if err != nil {
 		t.Fatal(err)
 	}
+	reporter.AddGatherer(registry)
 	if diff := assertDiff(nil); diff != "" {
 		t.Errorf("unexpected output (-want +got):\n%s", diff)
 	}
@@ -299,10 +301,12 @@ func TestCounters(t *testing.T) {
 	expectedCounter := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "grpc_server_handled_total",
 	}, []string{"grpc_method"})
-	err := reporter.Registry.Register(expectedCounter)
+	registry := prometheus.NewRegistry()
+	err := registry.Register(expectedCounter)
 	if err != nil {
 		t.Fatal(err)
 	}
+	reporter.AddGatherer(registry)
 	if diff := assertDiff(nil); diff != "" {
 		t.Errorf("unexpected output (-want +got):\n%s", diff)
 	}
@@ -348,10 +352,11 @@ func TestCounters(t *testing.T) {
 	unexpectedCounter := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "some_unexpected_counter_total",
 	}, []string{"grpc_method"})
-	err = reporter.Registry.Register(unexpectedCounter)
+	err = registry.Register(unexpectedCounter)
 	if err != nil {
 		t.Fatal(err)
 	}
+	reporter.AddGatherer(registry)
 	if diff := assertDiff(nil); diff != "" {
 		t.Errorf("unexpected output (-want +got):\n%s", diff)
 	}

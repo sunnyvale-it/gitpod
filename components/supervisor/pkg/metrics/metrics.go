@@ -20,7 +20,8 @@ import (
 )
 
 type GrpcMetricsReporter struct {
-	Registry         *prometheus.Registry
+	gatherers prometheus.Gatherers
+
 	supportedMetrics map[string]bool
 
 	values       map[string]float64
@@ -32,7 +33,6 @@ type GrpcMetricsReporter struct {
 
 func NewGrpcMetricsReporter(gitpodHost string) *GrpcMetricsReporter {
 	return &GrpcMetricsReporter{
-		Registry: prometheus.NewRegistry(),
 		supportedMetrics: map[string]bool{
 			"grpc_server_handled_total":      true,
 			"grpc_server_msg_received_total": true,
@@ -51,6 +51,10 @@ func NewGrpcMetricsReporter(gitpodHost string) *GrpcMetricsReporter {
 	}
 }
 
+func (r *GrpcMetricsReporter) AddGatherer(gatherer prometheus.Gatherer) {
+	r.gatherers = append(r.gatherers, gatherer)
+}
+
 func (r *GrpcMetricsReporter) Report(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
 	for {
@@ -64,10 +68,13 @@ func (r *GrpcMetricsReporter) Report(ctx context.Context) {
 }
 
 func (r *GrpcMetricsReporter) gather() {
-	families, err := r.Registry.Gather()
-	if err != nil {
-		log.WithError(err).Error("supervisor: failed to gather grpc metrics")
-		return
+	var families []*dto.MetricFamily
+	for _, gatherer := range r.gatherers {
+		f, err := gatherer.Gather()
+		if err != nil {
+			log.WithError(err).Error("supervisor: failed to gather grpc metrics")
+		}
+		families = append(families, f...)
 	}
 	for _, family := range families {
 		if family != nil {
