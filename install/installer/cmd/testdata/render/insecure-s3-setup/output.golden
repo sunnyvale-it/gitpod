@@ -911,22 +911,6 @@ metadata:
   name: migrations
   namespace: default
 ---
-# v1/ServiceAccount minio
-# Source: minio/charts/minio/templates/serviceaccount.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: minio
-  namespace: "default"
-  labels:
-    app.kubernetes.io/name: minio
-    helm.sh/chart: minio-11.6.3
-    app.kubernetes.io/instance: minio
-    app.kubernetes.io/managed-by: Helm
-automountServiceAccountToken: true
-secrets:
-  - name: minio
----
 # v1/ServiceAccount nobody
 apiVersion: v1
 automountServiceAccountToken: true
@@ -1182,24 +1166,6 @@ metadata:
   name: messagebus-erlang-cookie
   namespace: default
 ---
-# v1/Secret minio
-# Source: minio/charts/minio/templates/secrets.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: minio
-  namespace: "default"
-  labels:
-    app.kubernetes.io/name: minio
-    helm.sh/chart: minio-11.6.3
-    app.kubernetes.io/instance: minio
-    app.kubernetes.io/managed-by: Helm
-type: Opaque
-data:
-  root-user: "OC1XR3F3Mm9UbnNQZlVETlNrMFk="
-  root-password: "RHBDLmFTQXhrV0JQdTJfYkpfQUU="
-  key.json: ""
----
 # v1/Secret mysql
 apiVersion: v1
 data:
@@ -1384,20 +1350,24 @@ data:
       },
       "storage": {
         "stage": "",
-        "kind": "minio",
+        "kind": "s3",
         "gcloud": {
           "credentialsFile": "",
           "region": "",
           "projectId": ""
         },
         "minio": {
-          "endpoint": "minio.default.svc.cluster.local:9000",
-          "accessKey": "8-WGqw2oTnsPfUDNSk0Y",
+          "endpoint": "",
+          "accessKey": "",
           "accessKeyFile": "",
-          "secretKey": "DpC.aSAxkWBPu2_bJ_AE",
+          "secretKey": "",
           "secretKeyFile": "",
+          "region": ""
+        },
+        "s3": {
+          "bucket": "s3-bucket",
           "region": "local",
-          "parallelUpload": 6
+          "credentialsFile": "/mnt/secrets/storage/credentials"
         },
         "blobQuota": 5368709120
       }
@@ -1490,10 +1460,17 @@ data:
       region: local
       shortname: default
     objectStorage:
-      inCluster: true
+      inCluster: false
       resources:
         requests:
           memory: 2Gi
+      s3:
+        allowInsecureConnection: true
+        bucket: s3-bucket
+        credentials:
+          kind: secret
+          name: s3-storage
+        endpoint: s3-provider.com
     observability:
       logLevel: info
     openVSX:
@@ -3490,66 +3467,6 @@ data:
         app.kubernetes.io/name: mysql
         helm.sh/chart: mysql-9.1.2
       name: mysql
-      namespace: default
-    ---
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      creationTimestamp: null
-      labels:
-        app.kubernetes.io/instance: minio
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: minio
-        helm.sh/chart: minio-11.6.3
-      name: minio
-      namespace: default
-    ---
-    apiVersion: v1
-    kind: Secret
-    metadata:
-      creationTimestamp: null
-      labels:
-        app.kubernetes.io/instance: minio
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: minio
-        helm.sh/chart: minio-11.6.3
-      name: minio
-      namespace: default
-    ---
-    apiVersion: v1
-    kind: PersistentVolumeClaim
-    metadata:
-      creationTimestamp: null
-      labels:
-        app.kubernetes.io/instance: minio
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: minio
-        helm.sh/chart: minio-11.6.3
-      name: minio
-      namespace: default
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      creationTimestamp: null
-      labels:
-        app.kubernetes.io/instance: minio
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: minio
-        helm.sh/chart: minio-11.6.3
-      name: minio
-      namespace: default
-    ---
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      creationTimestamp: null
-      labels:
-        app.kubernetes.io/instance: minio
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: minio
-        helm.sh/chart: minio-11.6.3
-      name: minio
       namespace: default
     ---
     apiVersion: networking.k8s.io/v1
@@ -5712,20 +5629,24 @@ data:
           "tempDir": "/tmp",
           "storage": {
             "stage": "",
-            "kind": "minio",
+            "kind": "s3",
             "gcloud": {
               "credentialsFile": "",
               "region": "",
               "projectId": ""
             },
             "minio": {
-              "endpoint": "minio.default.svc.cluster.local:9000",
-              "accessKey": "8-WGqw2oTnsPfUDNSk0Y",
+              "endpoint": "",
+              "accessKey": "",
               "accessKeyFile": "",
-              "secretKey": "DpC.aSAxkWBPu2_bJ_AE",
+              "secretKey": "",
               "secretKeyFile": "",
+              "region": ""
+            },
+            "s3": {
+              "bucket": "s3-bucket",
               "region": "local",
-              "parallelUpload": 6
+              "credentialsFile": "/mnt/secrets/storage/credentials"
             },
             "blobQuota": 5368709120
           },
@@ -5896,20 +5817,24 @@ data:
       "content": {
         "storage": {
           "stage": "",
-          "kind": "minio",
+          "kind": "s3",
           "gcloud": {
             "credentialsFile": "",
             "region": "",
             "projectId": ""
           },
           "minio": {
-            "endpoint": "minio.default.svc.cluster.local:9000",
-            "accessKey": "8-WGqw2oTnsPfUDNSk0Y",
+            "endpoint": "",
+            "accessKey": "",
             "accessKeyFile": "",
-            "secretKey": "DpC.aSAxkWBPu2_bJ_AE",
+            "secretKey": "",
             "secretKeyFile": "",
+            "region": ""
+          },
+          "s3": {
+            "bucket": "s3-bucket",
             "region": "local",
-            "parallelUpload": 6
+            "credentialsFile": "/mnt/secrets/storage/credentials"
           },
           "blobQuota": 5368709120
         }
@@ -6053,25 +5978,6 @@ metadata:
     component: ws-proxy
   name: ws-proxy
   namespace: default
----
-# v1/PersistentVolumeClaim minio
-# Source: minio/charts/minio/templates/pvc.yaml
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: minio
-  namespace: "default"
-  labels:
-    app.kubernetes.io/name: minio
-    helm.sh/chart: minio-11.6.3
-    app.kubernetes.io/instance: minio
-    app.kubernetes.io/managed-by: Helm
-spec:
-  accessModes:
-    - "ReadWriteOnce"
-  resources:
-    requests:
-      storage: "8Gi"
 ---
 # v1/PersistentVolumeClaim registry
 # Source: docker-registry/charts/docker-registry/templates/pvc.yaml
@@ -7533,33 +7439,6 @@ spec:
     app.kubernetes.io/instance: rabbitmq
   publishNotReadyAddresses: true
 ---
-# v1/Service minio
-# Source: minio/charts/minio/templates/service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: minio
-  namespace: "default"
-  labels:
-    app.kubernetes.io/name: minio
-    helm.sh/chart: minio-11.6.3
-    app.kubernetes.io/instance: minio
-    app.kubernetes.io/managed-by: Helm
-spec:
-  type: ClusterIP
-  ports:
-    - name: minio-api
-      port: 9000
-      targetPort: minio-api
-      nodePort: null
-    - name: minio-console
-      port: 9001
-      targetPort: minio-console
-      nodePort: null
-  selector:
-    app.kubernetes.io/name: minio
-    app.kubernetes.io/instance: minio
----
 # v1/Service mysql
 # Source: mysql/charts/mysql/templates/primary/svc.yaml
 apiVersion: v1
@@ -8225,7 +8104,7 @@ spec:
   template:
     metadata:
       annotations:
-        gitpod.io/checksum_config: b938c6e286051c22b503c29f5de266741c2045a3ed69be85d7fd9f22a9346254
+        gitpod.io/checksum_config: 542b4f17eadb6bf27232678ee42b58f08cc23289ca10890871ada61e76453854
         seccomp.security.alpha.kubernetes.io/shiftfs-module-loader: unconfined
       creationTimestamp: null
       labels:
@@ -8324,6 +8203,9 @@ spec:
           name: tls-certs
         - mountPath: /mnt/sync-tmp
           name: gcloud-tmp
+        - mountPath: /mnt/secrets/storage
+          name: storage-volume
+          readOnly: true
       - args:
         - --logtostderr
         - --insecure-listen-address=[$(IP)]:9500
@@ -8489,6 +8371,9 @@ spec:
           path: /var/gitpod/tmp/backup
           type: DirectoryOrCreate
         name: gcloud-tmp
+      - name: storage-volume
+        secret:
+          secretName: s3-storage
   updateStrategy: {}
 status:
   currentNumberScheduled: 0
@@ -9165,7 +9050,7 @@ spec:
   template:
     metadata:
       annotations:
-        gitpod.io/checksum_config: 20782435cc6d6e080cf720b57dca8d4d5cfe40942fc71c4bfd54934fdc34c766
+        gitpod.io/checksum_config: 4e8e7593c627eb77122d4ce16e3c2fbbf29c6379c96f9593d3bbd840dd6b870d
       creationTimestamp: null
       labels:
         app: gitpod
@@ -9225,6 +9110,9 @@ spec:
         - mountPath: /config
           name: config
           readOnly: true
+        - mountPath: /mnt/secrets/storage
+          name: storage-volume
+          readOnly: true
       - args:
         - --logtostderr
         - --insecure-listen-address=[$(IP)]:9500
@@ -9258,6 +9146,9 @@ spec:
       - configMap:
           name: content-service
         name: config
+      - name: storage-volume
+        secret:
+          secretName: s3-storage
 status: {}
 ---
 # apps/v1/Deployment dashboard
@@ -10018,117 +9909,6 @@ spec:
         name: cacerts
 status: {}
 ---
-# apps/v1/Deployment minio
-# Source: minio/charts/minio/templates/standalone/deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: minio
-  namespace: "default"
-  labels:
-    app.kubernetes.io/name: minio
-    helm.sh/chart: minio-11.6.3
-    app.kubernetes.io/instance: minio
-    app.kubernetes.io/managed-by: Helm
-spec:
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: minio
-      app.kubernetes.io/instance: minio
-  strategy:
-    type: Recreate
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: minio
-        helm.sh/chart: minio-11.6.3
-        app.kubernetes.io/instance: minio
-        app.kubernetes.io/managed-by: Helm
-      annotations:
-        checksum/credentials-secret: 0a5790906818b3f8eeee0bd3b3e990b3ad02d79bb23c62c0d91a4ca010fb5579
-    spec:
-      
-      serviceAccountName: minio
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: gitpod.io/workload_meta
-                operator: Exists
-        
-      securityContext:
-        fsGroup: 1001
-      containers:
-        - name: minio
-          image: docker.io/bitnami/minio:2022.5.26-debian-10-r0
-          imagePullPolicy: "IfNotPresent"
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 1001
-          env:
-            - name: BITNAMI_DEBUG
-              value: "false"
-            - name: MINIO_SCHEME
-              value: "http"
-            - name: MINIO_FORCE_NEW_KEYS
-              value: "no"
-            - name: MINIO_ROOT_USER
-              valueFrom:
-                secretKeyRef:
-                  name: minio
-                  key: root-user
-            - name: MINIO_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: minio
-                  key: root-password
-            - name: MINIO_BROWSER
-              value: "on"
-            - name: MINIO_PROMETHEUS_AUTH_TYPE
-              value: "public"
-            - name: MINIO_CONSOLE_PORT_NUMBER
-              value: "9001"
-            - name: MINIO_SKIP_CLIENT
-              value: "yes"
-          envFrom:
-          ports:
-            - name: minio-api
-              containerPort: 9000
-              protocol: TCP
-            - name: minio-console
-              containerPort: 9001
-              protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /minio/health/live
-              port: minio-api
-              scheme: "HTTP"
-            initialDelaySeconds: 5
-            periodSeconds: 5
-            timeoutSeconds: 5
-            successThreshold: 1
-            failureThreshold: 5
-          readinessProbe:
-            tcpSocket:
-              port: minio-api
-            initialDelaySeconds: 5
-            periodSeconds: 5
-            timeoutSeconds: 1
-            successThreshold: 1
-            failureThreshold: 5
-          resources:
-            limits: {}
-            requests:
-              memory: 2Gi
-          volumeMounts:
-            - name: data
-              mountPath: /data
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: minio
----
 # apps/v1/Deployment proxy
 apiVersion: apps/v1
 kind: Deployment
@@ -10873,7 +10653,7 @@ spec:
   template:
     metadata:
       annotations:
-        gitpod.io/checksum_config: cd4b2686fe34e3488f453e58aabb2197bd886fb64b6e6fc3ab840694d09b6391
+        gitpod.io/checksum_config: 1bd988ed96e0969daaf49975301c9ce7ebbb5d47149400fe56fc52c933c096a3
       creationTimestamp: null
       labels:
         app: gitpod
@@ -10940,6 +10720,9 @@ spec:
         - mountPath: /certs
           name: tls-certs
           readOnly: true
+        - mountPath: /mnt/secrets/storage
+          name: storage-volume
+          readOnly: true
       - args:
         - --logtostderr
         - --insecure-listen-address=[$(IP)]:9500
@@ -10982,6 +10765,9 @@ spec:
       - name: tls-certs
         secret:
           secretName: ws-manager-tls
+      - name: storage-volume
+        secret:
+          secretName: s3-storage
 status: {}
 ---
 # apps/v1/Deployment ws-manager-bridge
