@@ -20,6 +20,20 @@ interface SelectIDEProps {
     location: IDEChangedTrackLocation;
 }
 
+const makeVersionHumanReadable = (versionString?: string) => {
+    if (!versionString) {
+        return undefined;
+    }
+
+    let [version, pre] = versionString.split("-");
+    if (pre) {
+        // Capitalize the string, so that 1.74.0-insider becomes 1.74.0 Insider
+        pre = pre[0].toUpperCase() + pre.slice(1);
+    }
+
+    return [version, pre].join(" ").trim();
+};
+
 export const updateUserIDEInfo = async (
     user: User,
     selectedIde: string,
@@ -92,7 +106,12 @@ export default function SelectIDE(props: SelectIDEProps) {
                                     const selected = defaultIde === id;
                                     const version = useLatestVersion ? option.latestImageVersion : option.imageVersion;
                                     const onSelect = () => actuallySetDefaultIde(id);
-                                    return renderIdeOption(option, selected, version, onSelect);
+                                    return renderIdeOption(
+                                        option,
+                                        selected,
+                                        makeVersionHumanReadable(version),
+                                        onSelect,
+                                    );
                                 })}
                             </div>
                             {ideOptions.options[defaultIde]?.notes && (
