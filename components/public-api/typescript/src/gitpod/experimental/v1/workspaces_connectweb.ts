@@ -9,7 +9,7 @@
 /* eslint-disable */
 /* @ts-nocheck */
 
-import {CreateAndStartWorkspaceRequest, CreateAndStartWorkspaceResponse, GetOwnerTokenRequest, GetOwnerTokenResponse, GetWorkspaceRequest, GetWorkspaceResponse, ListWorkspacesRequest, ListWorkspacesResponse, StopWorkspaceRequest, StopWorkspaceResponse, UpdatePortRequest, UpdatePortResponse} from "./workspaces_pb.js";
+import {CreateAndStartWorkspaceRequest, CreateAndStartWorkspaceResponse, GetOwnerTokenRequest, GetOwnerTokenResponse, GetWorkspaceRequest, GetWorkspaceResponse, ListWorkspacesRequest, ListWorkspacesResponse, StopWorkspaceRequest, StopWorkspaceResponse, UpdatePortRequest, UpdatePortResponse, WorkspaceStatusUpdateRequest, WorkspaceStatusUpdateResponse} from "./workspaces_pb.js";
 import {MethodKind} from "@bufbuild/protobuf";
 
 /**
@@ -39,6 +39,17 @@ export const WorkspacesService = {
       I: GetWorkspaceRequest,
       O: GetWorkspaceResponse,
       kind: MethodKind.Unary,
+    },
+    /**
+     * WorkspaceStatusUpdate returns workspace status once it changed.
+     *
+     * @generated from rpc gitpod.experimental.v1.WorkspacesService.WorkspaceStatusUpdate
+     */
+    workspaceStatusUpdate: {
+      name: "WorkspaceStatusUpdate",
+      I: WorkspaceStatusUpdateRequest,
+      O: WorkspaceStatusUpdateResponse,
+      kind: MethodKind.ServerStreaming,
     },
     /**
      * GetOwnerToken returns an owner token.

@@ -9,8 +9,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"reflect"
-	"time"
 
 	backoff "github.com/cenkalti/backoff/v4"
 	"github.com/gitpod-io/gitpod/common-go/experiments"
@@ -135,6 +133,12 @@ func (s *Service) tryConnToPublicAPI() {
 	log.WithField("endpoint", endpoint).Info("connecting to PublicAPI...")
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{MinVersion: tls.VersionTLS13})),
+		grpc.WithStreamInterceptor(grpc_middleware.ChainStreamClient([]grpc.StreamClientInterceptor{
+			func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+				withAuth := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+s.token)
+				return streamer(withAuth, desc, cc, method, opts...)
+			},
+		}...)),
 		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient([]grpc.UnaryClientInterceptor{
 			s.publicApiMetrics.UnaryClientInterceptor(),
 			func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
@@ -259,57 +263,32 @@ func (s *Service) listenInstanceUpdate(ctx context.Context, instanceID string) {
 	}
 }
 
-func (s *Service) getWorkspaceInfo(ctx context.Context, instanceID, workspaceID string) (*gitpod.WorkspaceInstance, error) {
-	getData := func() (*gitpod.WorkspaceInstance, error) {
-		if !s.usePublicAPI(ctx) {
-			return s.lastServerInstance, nil
-		}
-		service := v1.NewWorkspacesServiceClient(s.publicAPIConn)
-		resp, err := service.GetWorkspace(ctx, &v1.GetWorkspaceRequest{
-			WorkspaceId: workspaceID,
-		})
-		if err != nil {
-			log.WithField("method", "GetWorkspace").WithError(err).Error("failed to call PublicAPI")
-			return nil, err
-		}
-		instance := &gitpod.WorkspaceInstance{
-			CreationTime: resp.Result.Status.Instance.CreatedAt.String(),
-			ID:           resp.Result.Status.Instance.InstanceId,
-			Status: &gitpod.WorkspaceInstanceStatus{
-				ExposedPorts: []*gitpod.WorkspaceInstancePort{},
-				Message:      resp.Result.Status.Instance.Status.Message,
-				// OwnerToken:   "", not used so ignore
-				Phase:   resp.Result.Status.Instance.Status.Phase.String(),
-				Timeout: resp.Result.Status.Instance.Status.Conditions.Timeout,
-				Version: int(resp.Result.Status.Instance.Status.StatusVersion),
-			},
-			WorkspaceID: resp.Result.WorkspaceId,
-		}
-		for _, port := range resp.Result.Status.Instance.Status.Ports {
-			info := &gitpod.WorkspaceInstancePort{
-				Port: float64(port.Port),
-				URL:  port.Url,
-			}
-			if port.Policy == v1.PortPolicy_PORT_POLICY_PUBLIC {
-				info.Visibility = gitpod.PortVisibilityPublic
-			} else {
-				info.Visibility = gitpod.PortVisibilityPrivate
-			}
-			instance.Status.ExposedPorts = append(instance.Status.ExposedPorts, info)
-		}
-		return instance, nil
-	}
-	exp := &backoff.ExponentialBackOff{
-		InitialInterval:     2 * time.Second,
-		RandomizationFactor: 0.5,
-		Multiplier:          1.5,
-		MaxInterval:         30 * time.Second,
-		MaxElapsedTime:      0,
-		Stop:                backoff.Stop,
-		Clock:               backoff.SystemClock,
-	}
-	return backoff.RetryWithData(getData, exp)
-}
+// func (s *Service) getWorkspaceInfo(ctx context.Context, instanceID, workspaceID string) (*gitpod.WorkspaceInstance, error) {
+// 	getData := func() (*gitpod.WorkspaceInstance, error) {
+// 		if !s.usePublicAPI(ctx) {
+// 			return s.lastServerInstance, nil
+// 		}
+// 		service := v1.NewWorkspacesServiceClient(s.publicAPIConn)
+// 		resp, err := service.GetWorkspace(ctx, &v1.GetWorkspaceRequest{
+// 			WorkspaceId: workspaceID,
+// 		})
+// 		if err != nil {
+// 			log.WithField("method", "GetWorkspace").WithError(err).Error("failed to call PublicAPI")
+// 			return nil, err
+// 		}
+// 		return workspaceStatusToWorkspaceInstance(resp.Result.Status), nil
+// 	}
+// 	exp := &backoff.ExponentialBackOff{
+// 		InitialInterval:     2 * time.Second,
+// 		RandomizationFactor: 0.5,
+// 		Multiplier:          1.5,
+// 		MaxInterval:         30 * time.Second,
+// 		MaxElapsedTime:      0,
+// 		Stop:                backoff.Stop,
+// 		Clock:               backoff.SystemClock,
+// 	}
+// 	return backoff.RetryWithData(getData, exp)
+// }
 
 // InstanceUpdates implements protocol.APIInterface
 func (s *Service) InstanceUpdates(ctx context.Context, instanceID string, workspaceID string) (<-chan *gitpod.WorkspaceInstance, error) {
@@ -319,24 +298,47 @@ func (s *Service) InstanceUpdates(ctx context.Context, instanceID string, worksp
 	if !s.usePublicAPI(ctx) && s.persistServerAPIChannelWhenStart(ctx) {
 		return s.gitpodService.InstanceUpdates(ctx, instanceID)
 	}
+
 	updateChan := make(chan *gitpod.WorkspaceInstance)
-	var latestInstance *gitpod.WorkspaceInstance
+
+	// var latestInstance *gitpod.WorkspaceInstance
+	// go func() {
+	// 	for {
+	// 		if ctx.Err() != nil {
+	// 			close(updateChan)
+	// 			break
+	// 		}
+	// 		if instance, err := s.getWorkspaceInfo(ctx, instanceID, workspaceID); err == nil {
+	// 			if reflect.DeepEqual(latestInstance, instance) {
+	// 				continue
+	// 			}
+	// 			latestInstance = instance
+	// 			updateChan <- instance
+	// 		}
+	// 		time.Sleep(1 * time.Second)
+	// 	}
+	// }()
+
+	service := v1.NewWorkspacesServiceClient(s.publicAPIConn)
+	resp, err := service.WorkspaceStatusUpdate(ctx, &v1.WorkspaceStatusUpdateRequest{
+		WorkspaceId: workspaceID,
+	})
+	if err != nil {
+		log.WithField("method", "WorkspaceStatusUpdate").WithError(err).Error("failed to call PublicAPI")
+		return nil, err
+	}
 	go func() {
 		for {
-			if ctx.Err() != nil {
+			resp, err := resp.Recv()
+			if err != nil {
+				log.WithField("method", "WorkspaceStatusUpdate").WithError(err).Error("failed to receive status update")
 				close(updateChan)
-				break
+				return
 			}
-			if instance, err := s.getWorkspaceInfo(ctx, instanceID, workspaceID); err == nil {
-				if reflect.DeepEqual(latestInstance, instance) {
-					continue
-				}
-				latestInstance = instance
-				updateChan <- instance
-			}
-			time.Sleep(1 * time.Second)
+			updateChan <- workspaceStatusToWorkspaceInstance(resp.Result)
 		}
 	}()
+
 	return updateChan, nil
 }
 
@@ -374,4 +376,33 @@ func (s *Service) RegisterMetrics(registry *prometheus.Registry) error {
 		return errNotConnected
 	}
 	return registry.Register(s.publicApiMetrics)
+}
+
+func workspaceStatusToWorkspaceInstance(status *v1.WorkspaceStatus) *gitpod.WorkspaceInstance {
+	instance := &gitpod.WorkspaceInstance{
+		CreationTime: status.Instance.CreatedAt.String(),
+		ID:           status.Instance.InstanceId,
+		Status: &gitpod.WorkspaceInstanceStatus{
+			ExposedPorts: []*gitpod.WorkspaceInstancePort{},
+			Message:      status.Instance.Status.Message,
+			// OwnerToken:   "", not used so ignore
+			Phase:   status.Instance.Status.Phase.String(),
+			Timeout: status.Instance.Status.Conditions.Timeout,
+			Version: int(status.Instance.Status.StatusVersion),
+		},
+		WorkspaceID: status.Instance.WorkspaceId,
+	}
+	for _, port := range status.Instance.Status.Ports {
+		info := &gitpod.WorkspaceInstancePort{
+			Port: float64(port.Port),
+			URL:  port.Url,
+		}
+		if port.Policy == v1.PortPolicy_PORT_POLICY_PUBLIC {
+			info.Visibility = gitpod.PortVisibilityPublic
+		} else {
+			info.Visibility = gitpod.PortVisibilityPrivate
+		}
+		instance.Status.ExposedPorts = append(instance.Status.ExposedPorts, info)
+	}
+	return instance
 }
