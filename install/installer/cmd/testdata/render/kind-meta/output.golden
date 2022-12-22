@@ -914,6 +914,10 @@ data:
             ],
             "inlineStatic": [
               {
+                "search": "window.location.origin;",
+                "replacement": "'${ide}';"
+              },
+              {
                 "search": "${window.location.origin}",
                 "replacement": "."
               },
@@ -2762,7 +2766,7 @@ apiVersion: v1
 data:
   config.json: |-
     {
-      "gpRunImage": "registry.hub.docker.com/gitpod/gp-run:latest",
+      "gpRunImage": "registry.hub.docker.com/gitpod/gp-run:ak-test",
       "supervisorImage": "eu.gcr.io/gitpod-core-dev/build/supervisor:test",
       "ideOptions": {
         "options": {
@@ -4383,7 +4387,7 @@ apiVersion: v1
 data:
   config.json: |-
     {
-      "gpRunImage": "registry.hub.docker.com/gitpod/gp-run:latest",
+      "gpRunImage": "registry.hub.docker.com/gitpod/gp-run:ak-test",
       "supervisorImage": "eu.gcr.io/gitpod-core-dev/build/supervisor:test",
       "ideOptions": {
         "options": {
@@ -6400,7 +6404,7 @@ spec:
   template:
     metadata:
       annotations:
-        gitpod.io/checksum_config: cac138904f08d79e5598805683f8dc378bd52c58348489de22949ac38dd8b193
+        gitpod.io/checksum_config: 97c6690031d94500db687d0f866a711137b60053bd2aeaeb8d94f3570543570a
       creationTimestamp: null
       labels:
         app: gitpod
