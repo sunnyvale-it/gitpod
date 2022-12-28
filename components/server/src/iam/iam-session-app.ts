@@ -42,6 +42,7 @@ export class IamSessionApp {
     }
 
     protected async doCreateSession(req: express.Request) {
+        console.log("doCreateSession", { payload: req.body });
         const user = await this.userService.createUser({
             identity: {
                 authId: "fake-id-" + Date.now(),
