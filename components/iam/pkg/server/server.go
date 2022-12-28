@@ -42,7 +42,7 @@ func Start(logger *logrus.Entry, version string, cfg *config.ServiceConfig) erro
 		return fmt.Errorf("failed to initialize IAM server: %w", err)
 	}
 
-	config, err := oidc.LoadDemoConfigIntoDB(dbConn, cipherSet, cfg.SessionServiceAddress)
+	config, err := oidc.LoadDemoConfigIntoDB(dbConn, cipherSet, cfg.OIDCClientsConfigFile)
 	if err != nil {
 		log.Errorf("failed to load demo config into DB: %v", err)
 	}
