@@ -92,7 +92,8 @@ type testServerParams struct {
 
 func newTestServer(t *testing.T, params testServerParams) (url string, state *StateParam) {
 	router := chi.NewRouter()
-	oidcService := NewService()
+	sessionServerAddress := newFakeSessionServer(t)
+	oidcService := NewService(sessionServerAddress)
 	router.Mount("/oidc", Router(oidcService))
 
 	ts := httptest.NewServer(router)
