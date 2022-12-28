@@ -5,9 +5,14 @@
 package oidc
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+
+	db "github.com/gitpod-io/gitpod/components/gitpod-db/go"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // The demo config is used to setup a OIDC client with Google.
@@ -36,4 +41,28 @@ func readDemoConfigFromFile(path string) (*DemoConfig, error) {
 	}
 
 	return &config, nil
+}
+
+func LoadDemoConfigIntoDB(dbConn *gorm.DB, cipherSet *db.CipherSet, path string) (*db.OIDCClientConfig, error) {
+	testConfig, err := readDemoConfigFromFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read test config: %w", err)
+	}
+
+	data := db.OIDCSpec{
+		ClientId:     testConfig.ClientID,
+		ClientSecret: testConfig.ClientSecret,
+	}
+
+	encrypted, err := db.EncryptJSON(cipherSet, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt data: %w", err)
+	}
+
+	entry, err := db.CreateOIDCClientConfig(context.Background(), dbConn, db.OIDCClientConfig{
+		ID:     uuid.New(),
+		Issuer: testConfig.Issuer,
+		Data:   encrypted,
+	})
+	return &entry, err
 }

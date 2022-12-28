@@ -12,6 +12,7 @@ import (
 	v1 "github.com/gitpod-io/gitpod/components/iam-api/go/v1"
 
 	"github.com/gitpod-io/gitpod/common-go/baseserver"
+	"github.com/gitpod-io/gitpod/common-go/log"
 	"github.com/gitpod-io/gitpod/iam/pkg/apiv1"
 	"github.com/gitpod-io/gitpod/iam/pkg/config"
 	"github.com/gitpod-io/gitpod/iam/pkg/oidc"
@@ -22,12 +23,12 @@ import (
 func Start(logger *logrus.Entry, version string, cfg *config.ServiceConfig) error {
 	logger.WithField("config", cfg).Info("Starting IAM server.")
 
-	_, err := db.Connect(db.ConnectionParamsFromEnv())
+	dbConn, err := db.Connect(db.ConnectionParamsFromEnv())
 	if err != nil {
 		return fmt.Errorf("failed to establish database connection: %w", err)
 	}
 
-	_, err = db.NewCipherSetFromKeysInFile(filepath.Join(cfg.DatabaseConfigPath, "encryptionKeys"))
+	cipherSet, err := db.NewCipherSetFromKeysInFile(filepath.Join(cfg.DatabaseConfigPath, "encryptionKeys"))
 	if err != nil {
 		return fmt.Errorf("failed to read cipherset from file: %w", err)
 	}
@@ -39,6 +40,14 @@ func Start(logger *logrus.Entry, version string, cfg *config.ServiceConfig) erro
 	)
 	if err != nil {
 		return fmt.Errorf("failed to initialize IAM server: %w", err)
+	}
+
+	config, err := oidc.LoadDemoConfigIntoDB(dbConn, cipherSet, cfg.SessionServiceAddress)
+	if err != nil {
+		log.Errorf("failed to load demo config into DB: %v", err)
+	}
+	if config != nil {
+		log.Infof("demo config loaded. ID: %v", config.ID)
 	}
 
 	oidcService, err := oidc.NewServiceWithTestConfig(cfg.OIDCClientsConfigFile, cfg.SessionServiceAddress)

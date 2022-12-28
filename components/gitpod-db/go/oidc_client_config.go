@@ -8,9 +8,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"time"
 )
 
 type OIDCClientConfig struct {
@@ -30,9 +31,11 @@ func (c *OIDCClientConfig) TableName() string {
 }
 
 type OIDCSpec struct {
+	ClientId     string
+	ClientSecret string
 }
 
-func CreateOIDCCLientConfig(ctx context.Context, conn *gorm.DB, cfg OIDCClientConfig) (OIDCClientConfig, error) {
+func CreateOIDCClientConfig(ctx context.Context, conn *gorm.DB, cfg OIDCClientConfig) (OIDCClientConfig, error) {
 	if cfg.ID == uuid.Nil {
 		return OIDCClientConfig{}, errors.New("OIDC Client Config ID must be set")
 	}

@@ -17,6 +17,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	goidc "github.com/coreos/go-oidc/v3/oidc"
+	"github.com/gitpod-io/gitpod/common-go/log"
 	"golang.org/x/oauth2"
 )
 
@@ -68,7 +69,7 @@ func NewServiceWithTestConfig(configPath string, sessionServiceAddress string) (
 	s := NewService(sessionServiceAddress)
 	err = s.AddClientConfig(clientConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to add client config: %w", err)
+		log.Error("failed to add demo config: " + err.Error())
 	}
 
 	return s, nil
