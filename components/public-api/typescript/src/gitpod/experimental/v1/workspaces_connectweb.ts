@@ -9,7 +9,7 @@
 /* eslint-disable */
 /* @ts-nocheck */
 
-import {CreateAndStartWorkspaceRequest, CreateAndStartWorkspaceResponse, GetOwnerTokenRequest, GetOwnerTokenResponse, GetWorkspaceRequest, GetWorkspaceResponse, ListWorkspacesRequest, ListWorkspacesResponse, StopWorkspaceRequest, StopWorkspaceResponse, UpdatePortRequest, UpdatePortResponse, WorkspaceStatusUpdateRequest, WorkspaceStatusUpdateResponse} from "./workspaces_pb.js";
+import {CreateAndStartWorkspaceRequest, CreateAndStartWorkspaceResponse, GetOwnerTokenRequest, GetOwnerTokenResponse, GetWorkspaceRequest, GetWorkspaceResponse, ListWorkspacesRequest, ListWorkspacesResponse, StopWorkspaceRequest, StopWorkspaceResponse, StreamWorkspaceStatusRequest, StreamWorkspaceStatusResponse, UpdatePortRequest, UpdatePortResponse} from "./workspaces_pb.js";
 import {MethodKind} from "@bufbuild/protobuf";
 
 /**
@@ -41,14 +41,14 @@ export const WorkspacesService = {
       kind: MethodKind.Unary,
     },
     /**
-     * WorkspaceStatusUpdate returns workspace status once it changed.
+     * StreamWorkspaceStatus returns workspace status once it changed.
      *
-     * @generated from rpc gitpod.experimental.v1.WorkspacesService.WorkspaceStatusUpdate
+     * @generated from rpc gitpod.experimental.v1.WorkspacesService.StreamWorkspaceStatus
      */
-    workspaceStatusUpdate: {
-      name: "WorkspaceStatusUpdate",
-      I: WorkspaceStatusUpdateRequest,
-      O: WorkspaceStatusUpdateResponse,
+    streamWorkspaceStatus: {
+      name: "StreamWorkspaceStatus",
+      I: StreamWorkspaceStatusRequest,
+      O: StreamWorkspaceStatusResponse,
       kind: MethodKind.ServerStreaming,
     },
     /**
