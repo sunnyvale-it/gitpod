@@ -15,7 +15,6 @@ import { AppLoading } from "./app/AppLoading";
 import { AppRoutes } from "./app/AppRoutes";
 
 const Setup = React.lazy(() => import(/* webpackPrefetch: true */ "./Setup"));
-const InitializePage = React.lazy(() => import(/* webpackPrefetch: true */ "./initialize/InitializePage"));
 
 // Top level Dashboard App component
 const App: FunctionComponent = () => {
@@ -53,17 +52,6 @@ const App: FunctionComponent = () => {
             window.location.href = `https://www.gitpod.io`;
             return <div></div>;
         }
-    }
-
-    // SSO Setup
-    // TODO: shift this into a <Route/>
-    // Need to move user check into Route component though for protected routes
-    if (window.location.pathname === "/initialize") {
-        return (
-            <Suspense fallback={<AppLoading />}>
-                <InitializePage />
-            </Suspense>
-        );
     }
 
     // At this point if there's no user, they should Login

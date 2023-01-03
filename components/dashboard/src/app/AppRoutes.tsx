@@ -87,6 +87,7 @@ const ProjectsSearch = React.lazy(() => import(/* webpackPrefetch: true */ "../a
 const TeamsSearch = React.lazy(() => import(/* webpackPrefetch: true */ "../admin/TeamsSearch"));
 const License = React.lazy(() => import(/* webpackPrefetch: true */ "../admin/License"));
 const Usage = React.lazy(() => import(/* webpackPrefetch: true */ "../Usage"));
+const SSOSetupPage = React.lazy(() => import(/* webpackPrefetch: true */ "../sso-setup/SSOSetupPage"));
 
 type AppRoutesProps = {
     user: User;
@@ -157,6 +158,7 @@ export const AppRoutes: FunctionComponent<AppRoutesProps> = ({ user, teams }) =>
                     <Route path={projectsPathNew} exact component={NewProject} />
                     <Route path="/open" exact component={Open} />
                     <Route path="/setup" exact component={Setup} />
+                    <Route path="/sso-setup" component={SSOSetupPage} />
                     <Route path={workspacesPathMain} exact component={Workspaces} />
                     <Route path={settingsPathAccount} exact component={Account} />
                     <Route path={usagePathMain} exact component={Usage} />

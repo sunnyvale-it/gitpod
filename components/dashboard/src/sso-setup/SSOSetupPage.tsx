@@ -10,7 +10,7 @@ import Alert from "../components/Alert";
 import gitpodIcon from "../icons/gitpod.svg";
 import { SSOSetupForm } from "./SSOSetupForm";
 
-const InitializePage = () => {
+const SSOSetupPage = () => {
     const { search } = useLocation();
 
     const token = useMemo(() => {
@@ -41,4 +41,4 @@ const InitializePage = () => {
     );
 };
 
-export default InitializePage;
+export default SSOSetupPage;
