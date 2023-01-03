@@ -8,9 +8,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"time"
 )
 
 type OIDCClientConfig struct {
@@ -30,6 +31,27 @@ func (c *OIDCClientConfig) TableName() string {
 }
 
 type OIDCSpec struct {
+	OAuth2   OAuth2Config
+	Verifier VerifierConfig
+}
+
+type OAuth2Config struct {
+	// ClientID is the application's ID.
+	ClientID string `json:"clientId"`
+
+	// ClientSecret is the application's secret.
+	ClientSecret string `json:"clientSecret"`
+
+	// RedirectURL is the URL to redirect users going through
+	// the OAuth flow, after the resource owner's URLs.
+	RedirectURL string `json:"redirectUrl"`
+
+	// Scope specifies optional requested permissions.
+	Scopes []string `json:"scopes"`
+}
+
+type VerifierConfig struct {
+	ClientID string `json:"clientId"`
 }
 
 func CreateOIDCCLientConfig(ctx context.Context, conn *gorm.DB, cfg OIDCClientConfig) (OIDCClientConfig, error) {
