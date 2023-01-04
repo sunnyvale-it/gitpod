@@ -5,12 +5,15 @@
  */
 
 import { FunctionComponent, useCallback, useReducer, useState } from "react";
+import { TextInput } from "../components/forms/TextInput";
+import { oidcService } from "../service/public-api";
+import Alert from "../components/Alert";
 
 // TODO: Use a type already in gitpod-protocol
 type SSOConfig = {
     clientID: string;
     clientSecret: string;
-    redirectURL: string;
+    authEndpoint: string;
 };
 
 type SSOSetupFormProps = {
@@ -18,6 +21,7 @@ type SSOSetupFormProps = {
 };
 
 export const SSOSetupForm: FunctionComponent<SSOSetupFormProps> = ({ token }) => {
+    const [showSaveError, setShowSaveError] = useState(false);
     const [saving, setSaving] = useState(false);
     const [config, dispatch] = useReducer(
         (state: SSOConfig, action: Partial<SSOConfig>) => ({
@@ -27,18 +31,37 @@ export const SSOSetupForm: FunctionComponent<SSOSetupFormProps> = ({ token }) =>
         {
             clientID: "",
             clientSecret: "",
-            redirectURL: "",
+            authEndpoint: "",
         },
     );
+
+    const updateClientID = useCallback((val) => dispatch({ clientID: val }), []);
+    const updateClientSecret = useCallback((val) => dispatch({ clientSecret: val }), []);
+    const updateAuthEndpoint = useCallback((val) => dispatch({ authEndpoint: val }), []);
 
     const handleSave = useCallback(
         async (e) => {
             e.preventDefault();
             setSaving(true);
 
-            console.log("config", config);
-            console.log("token", token);
-            await sleep(2000);
+            console.log("saving config", config);
+
+            try {
+                const { config: newConfig } = await oidcService.createClientConfig({
+                    config: {
+                        oauth2Config: {
+                            clientId: config.clientID,
+                            clientSecret: config.clientSecret,
+                            authorizationEndpoint: config.authEndpoint,
+                        },
+                    },
+                });
+
+                console.log("saved config", newConfig);
+            } catch (e) {
+                console.log("Error saving SSO Config", e);
+                setShowSaveError(true);
+            }
 
             setSaving(false);
         },
@@ -47,27 +70,20 @@ export const SSOSetupForm: FunctionComponent<SSOSetupFormProps> = ({ token }) =>
 
     return (
         <div>
+            {showSaveError && <Alert type="error">Sorry, there was an error saving your SSO Configuration</Alert>}
             <form onSubmit={handleSave}>
-                <TextInput
-                    label="Client ID"
-                    value={config.clientID}
-                    id="client_id"
-                    disabled={saving}
-                    onChange={(val) => dispatch({ clientID: val })}
-                />
+                <TextInput label="Client ID" value={config.clientID} disabled={saving} onChange={updateClientID} />
                 <TextInput
                     label="Client Secret"
                     value={config.clientSecret}
-                    id="client_secret"
                     disabled={saving}
-                    onChange={(val) => dispatch({ clientSecret: val })}
+                    onChange={updateClientSecret}
                 />
                 <TextInput
-                    label="Redirect URL"
-                    value={config.redirectURL}
-                    id="redirect_url"
+                    label="Authorization Endpoint"
+                    value={config.authEndpoint}
                     disabled={saving}
-                    onChange={(val) => dispatch({ redirectURL: val })}
+                    onChange={updateAuthEndpoint}
                 />
 
                 <div className="mt-4">
@@ -77,51 +93,3 @@ export const SSOSetupForm: FunctionComponent<SSOSetupFormProps> = ({ token }) =>
         </div>
     );
 };
-
-type TextInputProps = {
-    label: string;
-    value: string;
-    // TODO: have this optional and use an autogen id hook
-    // element id attribute value for input
-    id: string;
-    placeholder?: string;
-    disabled?: boolean;
-    onChange: (newValue: string) => void;
-};
-
-const TextInput: FunctionComponent<TextInputProps> = ({
-    label,
-    value,
-    id,
-    placeholder,
-    disabled = false,
-    onChange,
-}) => {
-    const handleChange = useCallback(
-        (e) => {
-            onChange(e.target.value);
-        },
-        [onChange],
-    );
-
-    return (
-        <div className="mt-4">
-            <label className="text-sm font-semibold text-gray-600 dark:text-gray-400" htmlFor={id}>
-                {label}
-            </label>
-            <input
-                id={id}
-                className="max-w-lg"
-                value={value}
-                onChange={handleChange}
-                type="text"
-                placeholder={placeholder}
-                disabled={disabled}
-            />
-        </div>
-    );
-};
-
-function sleep(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}

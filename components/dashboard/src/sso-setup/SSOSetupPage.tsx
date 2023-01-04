@@ -27,15 +27,19 @@ const SSOSetupPage = () => {
 
     return (
         <div className="flex flex-grow flex w-full w-screen h-screen items-center justify-center">
-            <div className="px-10 py-10">
-                <div className="mx-auto pb-8">
-                    <img src={gitpodIcon} className="h-14 mx-auto block dark:hidden" alt="Gitpod's logo" />
-                    <img src={gitpodIcon} className="h-14 hidden mx-auto dark:block" alt="Gitpod dark theme logo" />
+            <div className="p-10 flex flex-col">
+                <div>
+                    <div className="mx-auto pb-8">
+                        <img src={gitpodIcon} className="h-14 mx-auto block dark:hidden" alt="Gitpod's logo" />
+                        <img src={gitpodIcon} className="h-14 hidden mx-auto dark:block" alt="Gitpod dark theme logo" />
+                    </div>
+
+                    <h1 className="text-3xl">Setup SSO</h1>
                 </div>
 
-                <h1 className="text-3xl">Setup SSO</h1>
-
-                {token ? <SSOSetupForm token={token} /> : <Alert>Invalid Token</Alert>}
+                <div className="mt-4 min-w-full">
+                    {token ? <SSOSetupForm token={token} /> : <Alert type="error">Invalid Token</Alert>}
+                </div>
             </div>
         </div>
     );
