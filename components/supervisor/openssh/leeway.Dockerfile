@@ -41,7 +41,8 @@ RUN apk add --no-cache \
   zlib-dev \
   sed \
   xauth \
-  zlib-static
+  zlib-static \
+  libcap
 
 RUN curl -fsSL "${openssh_url}" | tar xz --strip-components=1
 
@@ -62,6 +63,8 @@ RUN make install-nosysconf exec_prefix=/openssh
 
 RUN TEST_SSH_UNSAFE_PERMISSIONS=1 \
     make -C /build file-tests interop-tests unit SK_DUMMY_LIBRARY=''
+
+RUN setcap cap_net_bind_service=+ep /openssh/sbin/sshd
 
 FROM scratch AS openssh-static
 COPY --from=builder /openssh /usr
