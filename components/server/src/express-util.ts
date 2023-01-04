@@ -7,7 +7,7 @@
 import { URL } from "url";
 import * as express from "express";
 import * as crypto from "crypto";
-import { GitpodHostUrl } from "@gitpod/gitpod-protocol/lib/util/gitpod-host-url";
+// import { GitpodHostUrl } from "@gitpod/gitpod-protocol/lib/util/gitpod-host-url";
 import * as session from "express-session";
 
 export const query = (...tuples: [string, string][]) => {
@@ -34,32 +34,33 @@ export const isAllowedWebsocketDomain = (originHeader: any, gitpodHostName: stri
         if (originHostname === gitpodHostName) {
             return true;
         }
-        if (looksLikeWorkspaceHostname(originUrl, gitpodHostName)) {
-            return true;
-        } else {
-            return false;
-        }
+        return false;
+        // if (looksLikeWorkspaceHostname(originUrl, gitpodHostName)) {
+        //     return true;
+        // } else {
+        //     return false;
+        // }
     } catch (err) {
         return false;
     }
 };
 
-const looksLikeWorkspaceHostname = (originHostname: URL, gitpodHostName: string): boolean => {
-    // Is prefix a valid (looking) workspace ID?
-    const found = originHostname.toString().lastIndexOf(gitpodHostName);
-    if (found === -1) {
-        return false;
-    }
-    const url = new GitpodHostUrl(originHostname);
-    const workspaceId = url.workspaceId;
-    if (workspaceId) {
-        const hostname = url.url.hostname as string;
-        if (hostname.startsWith(workspaceId)) {
-            return true;
-        }
-    }
-    return false;
-};
+// const looksLikeWorkspaceHostname = (originHostname: URL, gitpodHostName: string): boolean => {
+//     // Is prefix a valid (looking) workspace ID?
+//     const found = originHostname.toString().lastIndexOf(gitpodHostName);
+//     if (found === -1) {
+//         return false;
+//     }
+//     const url = new GitpodHostUrl(originHostname);
+//     const workspaceId = url.workspaceId;
+//     if (workspaceId) {
+//         const hostname = url.url.hostname as string;
+//         if (hostname.startsWith(workspaceId)) {
+//             return true;
+//         }
+//     }
+//     return false;
+// };
 
 export function saveSession(session: session.Session): Promise<void> {
     return new Promise<void>((resolve, reject) => {
